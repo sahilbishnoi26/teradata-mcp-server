@@ -25,7 +25,7 @@ async def create_agent():
                 command='uv',
                 args=[
                     "--directory",
-                    "/Users/Daniel.Tehan/Code/MCP/teradata-mcp-server",
+                    "C:\\01-projects\\teradata-mcp-server",
                     "run",
                     "teradata-mcp-server"
                 ],
@@ -53,12 +53,18 @@ async def create_agent():
 
     """Defines the model to be used."""
     # Using Bedrock model
-    model=LiteLlm(
-            model='bedrock/anthropic.claude-3-5-sonnet-20240620-v1:0',  
-            aws_access_key_id=os.getenv("aws_access_key_id"),
-            aws_secret_access_key=os.getenv("aws_secret_access_key"),
-            region_name=os.getenv("aws_region", "us-west-2") 
-        )
+
+    model = LiteLlm(
+    model='openai/gpt-4o',  # or 'openai/gpt-4-turbo', 'openai/gpt-3.5-turbo', etc.
+    api_key=os.getenv("OPENAI_API_KEY")
+    )
+
+    # model=LiteLlm(
+    #         model='bedrock/anthropic.claude-3-5-sonnet-20240620-v1:0',  
+    #         aws_access_key_id=os.getenv("aws_access_key_id"),
+    #         aws_secret_access_key=os.getenv("aws_secret_access_key"),
+    #         region_name=os.getenv("aws_region", "us-west-2") 
+    #     )
     
     # # Using Google model
     # model='gemini-2.0-flash'
@@ -81,11 +87,10 @@ async def create_agent():
         model=model,
         name='Simple_Agent',
         instruction='Help user with Teradata tasks',
-        tools=[toolset]  
+        tools=[toolset],
     )
 
     return agent
 
 # Create the agent asynchronously
 root_agent = asyncio.run(create_agent())
-

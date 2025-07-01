@@ -154,7 +154,7 @@ def handle_store_user_query(
 
     return create_response([{"id": new_id, "txt": cleaned_txt}], meta)
 
-def create_tokenized_view(conn: TeradataConnection):
+def handle_create_tokenized_view(conn: TeradataConnection):
     """
     Tokenizes the most recent user-submitted query using the tokenizer specified in rag_config.
     
@@ -208,7 +208,7 @@ def create_tokenized_view(conn: TeradataConnection):
 
     return create_response("Tokenized view created successfully.", meta)
 
-def create_embedding_view(conn: TeradataConnection):
+def handle_create_embedding_view(conn: TeradataConnection):
     """
     Generates sentence embeddings for the most recent user query using the model specified in rag_config.
 

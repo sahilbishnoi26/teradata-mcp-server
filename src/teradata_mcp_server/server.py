@@ -22,7 +22,7 @@ load_dotenv()
 
 os.makedirs("logs", exist_ok=True)
 logging.basicConfig(
-    level=logging.ERROR,
+    level=logging.INFO,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     handlers=[logging.StreamHandler(),
               logging.FileHandler(os.path.join("logs", "teradata_mcp_server.log"))],
@@ -334,7 +334,13 @@ async def rag_set_config(
     vector_db: str = Field(description="Database containing the chunk vector store"),
     vector_table: str = Field(description="Table containing chunk embeddings for similarity search"),
 ) -> ResponseType:
-    return execute_db_tool( _tdconn, td.handle_set_rag_config, query_db=query_db, model_db=model_db, vector_db=vector_db, vector_table=vector_table,)
+    return execute_db_tool(
+        td.handle_set_rag_config,
+        query_db=query_db,
+        model_db=model_db,
+        vector_db=vector_db,
+        vector_table=vector_table,
+    )
 
 @mcp.tool(
     description=(
@@ -354,7 +360,12 @@ async def store_user_query(
     table_name: str = Field(..., description="Name of the table to store user questions (e.g., 'pdf_user_queries')."),
     question: str = Field(..., description="Natural language question from the user. Can optionally start with '/rag '."),
 ) -> ResponseType:
-    return execute_db_tool( td.handle_store_user_query, db_name=db_name, table_name=table_name, question=question)
+    return execute_db_tool(
+        td.handle_store_user_query,
+        db_name=db_name,
+        table_name=table_name,
+        question=question
+    )
 
 @mcp.tool(
     description=(
@@ -366,7 +377,7 @@ async def store_user_query(
     )
 )
 async def tokenize_query() -> ResponseType:
-    return execute_db_tool( td.create_tokenized_view)
+    return execute_db_tool(td.handle_create_tokenized_view)
 
 @mcp.tool(
     description=(
@@ -376,8 +387,8 @@ async def tokenize_query() -> ResponseType:
         "This must be run *after* create_tokenized_view and before vector_to_columns()."
     )
 )
-async def create_embedding_view() -> ResponseType:
-    return execute_db_tool( td.create_embedding_view)
+async def embed_query() -> ResponseType:
+    return execute_db_tool(td.handle_create_embedding_view)
 
 @mcp.tool(
     description=(
@@ -388,7 +399,7 @@ async def create_embedding_view() -> ResponseType:
     )
 )
 async def create_query_embedding_table() -> ResponseType:
-    return execute_db_tool( td.handle_create_query_embeddings)
+    return execute_db_tool(td.handle_create_query_embeddings)
 
 @mcp.tool(
     description=(
@@ -402,7 +413,12 @@ async def create_query_embedding_table() -> ResponseType:
 async def semantic_search_chunks(
     k: int = Field(10, description="Number of top matching chunks to retrieve."),
 ) -> ResponseType:
-    return execute_db_tool( td.handle_semantic_search, topk=k)
+    return execute_db_tool(td.handle_semantic_search, topk=k)
+
+
+@mcp.prompt()
+async def rag_guidelines() -> UserMessage:
+    return UserMessage(role="user", content=TextContent(type="text", text=td.rag_guidelines))
 
 #------------------ Security Tools  ------------------#
 
@@ -429,11 +445,6 @@ async def get_sec_userRoles(
     ) -> ResponseType:
     """Get roles assigned to a user."""
     return execute_db_tool( td.handle_get_sec_userRoles, user_name=user_name)
-
-
-@mcp.prompt()
-async def rag_guidelines() -> UserMessage:
-    return UserMessage(role="user", content=TextContent(type="text", text=td.rag_guidelines))
 
 #------------------ Custom Tools  ------------------#
 # Custom tools are defined as SQL queries in a YAML file and loaded at startup.
