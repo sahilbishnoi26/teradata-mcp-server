@@ -52,7 +52,6 @@ qlty:
 
 rag:
     allmodule: True
-    version: 'byom'  # Options: 'byom' (ONNXEmbeddings) or 'ivsm' (IVSM functions)
     tool:
         rag_executeWorkflow: True
     prompt:
