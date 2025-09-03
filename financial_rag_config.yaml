@@ -1,0 +1,66 @@
+# Final Clean Financial Reports RAG Configuration (ICICI Only)
+
+# RAG Version Selection
+version: 'ivsm'  # IVSM functions for embedding generation
+
+# Database Configuration
+databases:
+  query_db: "demo_db"
+  model_db: "demo_db"
+  vector_db: "demo_db"
+
+# Table Configuration
+tables:
+  query_table: "financial_user_query"
+  query_embedding_store: "financial_user_query_embeddings"
+  vector_table: "financial_reports_multi_year_embeddings_store"
+  model_table: "embeddings_models"
+  tokenizer_table: "embeddings_tokenizers"
+
+# Model Configuration
+model:
+  model_id: "bge-small-en-v1.5"
+
+# Financial Reports Retrieval Configuration
+retrieval:
+  default_k_per_year: 15      # Default chunks per year for temporal analysis
+  max_k_per_year: 30         # Maximum chunks per year (safety limit)
+  default_k_global: 50       # Default total chunks for general queries
+  max_k_global: 100          # Maximum total chunks (safety limit)
+  min_similarity_threshold: 0.5  # Minimum similarity score to include chunk
+  
+# Vector Store Schema Configuration (Ultra Clean - No Bloat)
+vector_store_schema:
+  # Required fields (always present in every vector store)
+  required_fields:
+    - "txt"           
+  
+  # Metadata fields available in the financial reports vector store
+  # Only essential fields for financial analysis - no bloat
+  metadata_fields_in_vector_store:
+    - "doc_name"       # Source document identification
+    - "report_year"    # Critical for temporal analysis
+    - "section_title"  # Content context (e.g., "Risk Management", "Financial Performance")
+    - "chunk_num"      # Position within document
+
+# Embedding Configuration
+embedding:
+  vector_length: 384
+  vector_column_prefix: "emb_"
+  distance_measure: "cosine"
+  feature_columns: "[emb_0:emb_383]"
+
+# Analysis Configuration
+analysis:
+  # Response formatting preferences
+  include_year_breakdown: true    # Show results grouped by year
+  include_source_citations: true  # Include doc names and sections in response
+  prioritize_recent_years: false  # Whether to weight recent years higher
+  
+  # Temporal analysis features
+  enable_trend_analysis: true     # Enable multi-year trend detection
+  enable_comparison_mode: true    # Enable cross-year comparison
+  
+  # Output formatting
+  max_context_length: 8000       # Maximum total context length for LLM
+  chunk_separator: "\n\n---\n\n" # Separator between chunks in context

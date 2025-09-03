@@ -14,8 +14,9 @@ import tdfs4ds
 import teradataml as tdml
 import inspect
 from sqlalchemy.engine import Engine, Connection
-import typing
-# Import the ai_tools module, clone-and-run friendly
+from typing import Optional
+
+
 try:
     from teradata_mcp_server import tools as td
 except ImportError:
@@ -591,6 +592,445 @@ if config['rag']['allmodule']:
                 role="user",
                 content=TextContent(type="text", text=td.rag_guidelines)
             )
+
+if config.get('customer', {}).get('allmodule', False):
+    if config['customer']['tool']['customer_meetingPrep']:
+        @mcp.tool(description="""
+        **TOOL SELECTION CRITERIA:**
+        Use this tool for ANY question about customers, including:
+        - Customer meetings, calls, or interactions
+        - Customer relationship status, health, or satisfaction  
+        - Customer contract information, renewals, or timelines
+        - Customer business context, challenges, priorities, or growth
+        - Customer sentiment, concerns, complaints, or feedback
+        - Customer support history, escalations, or issues
+        - Customer expansion plans, strategic initiatives, or opportunities
+        - Customer technical discussions, features, or requirements
+        - Customer financial information, revenue, or business metrics
+        - Customer communication patterns or preferences
+        - ANY question that mentions a specific customer name
+
+        **IMPORTANT**: 
+        - This tool requires a specific customer name to provide meaningful analysis
+        - If user asks general questions without naming a customer, ask them to specify which customer they want to analyze
+        - Extract customer names from questions when provided, or prompt user to specify
+
+        **CUSTOMER MEETING PREPARATION & CONVERSATION ANALYSIS TOOL**
+
+        **RESPONSE STRATEGY - READ CAREFULLY:**
+
+        **STEP 1: ANALYZE THE USER'S QUESTION TYPE**
+        - **General briefing** ("prepare for meeting", "what should I know about X") → Use structured comprehensive briefing
+        - **Specific inquiry** ("what did they say about Y", "are they satisfied", "any concerns") → Provide targeted analysis
+        - **Timeline question** ("when is renewal", "recent escalations") → Focus on dates and sequences
+        - **Sentiment question** ("how are they feeling", "any complaints") → Analyze sentiment patterns
+        - **Business question** ("their priorities", "growth plans") → Extract business intelligence
+
+        **STEP 2: ANALYZE THE RETRIEVED DATA**
+        Before responding, mentally organize the data by:
+        - **Recency**: prioritize 'this_week' > 'this_month' > 'last_3_months' > 'older'
+        - **Priority**: focus on 'high' priority_level interactions first
+        - **Sentiment**: flag 'concerning' or 'very_concerning' sentiment_category
+        - **Type**: consider interaction_type context (phone=formal, chat=immediate issues, email=strategic, video=important)
+
+        **STEP 3: CRAFT YOUR RESPONSE**
+
+        **FOR GENERAL BRIEFINGS:**
+        Provide comprehensive analysis using this structure:
+
+        **RELATIONSHIP HEALTH ASSESSMENT**
+        - Sentiment trend analysis across interaction types with specific examples
+        - Recent wins and concerns with exact quotes and dates
+        - Communication patterns and stakeholder engagement
+        - Relationship trajectory with supporting evidence
+
+        **MEETING PREPARATION RECOMMENDATIONS** 
+        - Talking points from recent conversations (quote specific mentions with dates)
+        - Outstanding action items from previous interactions
+        - Strategic opportunities discussed in conversations
+        - Risk mitigation topics based on concerning interactions
+
+        **BUSINESS CONTEXT & INSIGHTS**
+        - Performance metrics and growth indicators from conversations
+        - Contract timeline and renewal considerations
+        - Expansion plans or new initiatives mentioned
+        - Market pressures or competitive concerns raised
+
+        **ACTIONABLE MEETING AGENDA**
+        - Questions based on their recent challenges/initiatives
+        - Solutions to propose based on expressed needs
+        - Success stories to reference from interaction history
+        - Next steps to advance relationship
+
+        **FOR SPECIFIC INQUIRIES:**
+        Answer directly using conversation data:
+        - Start with the most relevant recent interaction
+        - Quote specific phrases with dates and interaction types
+        - Provide context from multiple interactions if available
+        - Connect findings to broader relationship patterns
+        - Include implications or recommendations based on the data
+        - Start with the most relevant recent interaction
+        - Quote specific phrases with dates and interaction types
+        - Provide context from multiple interactions if available
+        - Connect findings to broader relationship patterns
+        - Include implications or recommendations based on the data
+
+        **CRITICAL RESPONSE RULES:**
+
+        1. **EVIDENCE-BASED RESPONSES**: Every claim must be backed by specific conversation data
+        - Quote exact phrases: "In the January 18th call, Sarah mentioned..."
+        - Reference interaction types: "During the video meeting on..."
+        - Use sentiment data: "Their satisfaction dropped to 2.3 in the October escalation call..."
+
+        2. **PRIORITIZATION LOGIC**: 
+        - Recent interactions (this_week, this_month) take precedence
+        - High priority_level interactions are more important
+        - Concerning sentiment_category needs immediate attention
+        - Contract_urgency affects response priority
+
+        3. **CONTEXTUAL INTELLIGENCE**:
+        - Phone calls = formal discussions, strategic decisions
+        - Video meetings = important collaborative sessions
+        - Emails = strategic communications, detailed plans
+        - Chat = immediate support issues, quick resolutions
+
+        4. **RESPONSE DEPTH**: 
+        - For specific questions: 2-4 paragraphs with direct answers
+        - For general briefings: Comprehensive analysis using full structure
+        - Always include actionable insights, not just data summarization
+
+        5. **AVOID GENERIC RESPONSES**:
+        - Never say "based on the data" without specifying which data
+        - Don't provide templated advice - everything must be conversation-specific
+        - Replace generic recommendations with specific actions based on their actual situation
+
+        **QUALITY CHECKS BEFORE RESPONDING:**
+        - Did I quote specific conversations with dates?
+        - Am I answering the user's actual question?
+        - Did I prioritize recent/high-priority/concerning interactions?
+        - Are my recommendations based on actual conversation content?
+        - Would someone reading this understand this specific customer's unique situation?
+
+        **EXAMPLE RESPONSE PATTERNS:**
+
+        For "Are they satisfied?":
+        "Based on recent interactions, [Customer] shows mixed satisfaction levels. In the March 15th phone call, [specific quote about satisfaction]. However, the March 20th chat session rated 5/5 satisfaction when [specific issue] was resolved. The overall trend shows..."
+
+        For "What should I discuss in tomorrow's meeting?":
+        "Priority topics for your meeting: 1) Follow up on [specific issue from recent interaction with date], 2) Address their concern about [exact quote from conversation], 3) Propose [solution based on their expressed need in X interaction]..."
+
+        Remember: The goal is to demonstrate deep customer knowledge through specific conversation analysis, not provide generic meeting advice.
+        """)
+        async def customer_meetingPrep(
+            customer_name: str = Field(..., description="Name of the customer for analysis (e.g., 'TechFlow Solutions', 'Global Manufacturing Corp'). Supports partial matching. REQUIRED - if not provided in user question, ask user to specify which customer."),
+            meeting_type: str = Field("general", description="Type of meeting: general, renewal, expansion, support, strategic, quarterly_review"),
+            lookback_months: int = Field(6, description="Number of months of conversation history to analyze (1-12 months)"),
+        ) -> ResponseType:
+            """Consolidate customer conversation data for AI-powered meeting preparation recommendations."""
+            return execute_db_tool(
+                td.handle_customer_meetingPrep,
+                customer_name=customer_name,
+                meeting_type=meeting_type,
+                lookback_months=lookback_months
+            )
+        
+#------------------ Financial RAG Tools  ------------------#
+
+if config.get('financial_reports', {}).get('allmodule', False):
+    if config['financial_reports']['tool'].get('financial_rag_analysis', False):
+        
+        # Load financial RAG config to get defaults
+        try:
+            with open('financial_rag_config.yaml', 'r') as file:
+                financial_config = yaml.safe_load(file)
+            default_k_per_year = financial_config.get('retrieval', {}).get('default_k_per_year', 5)
+            default_k_global = financial_config.get('retrieval', {}).get('default_k_global', 20)
+            logger.info(f"Financial RAG config loaded: default_k_per_year={default_k_per_year}, default_k_global={default_k_global}")
+        except (FileNotFoundError, Exception) as e:
+            logger.warning(f"Could not load financial_rag_config.yaml: {e}. Using defaults")
+            default_k_per_year = 5
+            default_k_global = 20
+
+        @mcp.tool(description=f"""
+        Execute financial reports RAG analysis for ICICI Bank annual reports with intelligent multi-year retrieval.
+        
+        This tool performs sophisticated financial analysis by retrieving relevant chunks from ICICI Bank annual reports
+        across multiple years (2011-2015) based on LLM-parsed parameters from the user's question.
+
+        INTELLIGENT RETRIEVAL STRATEGIES:
+        - MULTI-YEAR ANALYSIS: Gets {default_k_per_year} chunks per year for balanced temporal analysis
+        - SINGLE-YEAR ANALYSIS: Gets {default_k_global} chunks globally using semantic similarity
+        - COMPARATIVE ANALYSIS: Ensures balanced representation across compared time periods
+        - TEMPORAL ANALYSIS: Orders results chronologically to show trends and progression
+
+        WORKFLOW STEPS (executed automatically using IVSM functions):
+        1. Store user query with LLM-parsed metadata (years, analysis_type)
+        2. Tokenize query using ivsm.tokenizer_encode with bge-small-en-v1.5
+        3. Generate embeddings using ivsm.IVSM_score
+        4. Convert to vector columns using ivsm.vector_to_columns
+        5. Perform semantic search with optional year filtering using TD_VECTORDISTANCE
+        6. Apply per-year balancing for multi-year queries using window functions
+
+        PARAMETER GUIDANCE FOR LLM:
+        - EXTRACT YEARS: Parse years from user queries (e.g., "2011 to 2015" → [2011,2012,2013,2014,2015])
+        - AVAILABLE YEARS: 2011, 2012, 2013, 2014, 2015 (ICICI Bank annual reports)
+        - DETERMINE ANALYSIS TYPE:
+          * "temporal": For trend analysis, growth patterns, evolution over time
+          * "comparative": For side-by-side comparisons between years or periods  
+          * "general": For single-point factual questions or definitions
+        - SET K: Leave as None for smart defaults, or specify total chunks needed
+
+        EXAMPLE PARAMETER EXTRACTION:
+        - "How did ICICI's revenue grow from 2011 to 2015?" → years=[2011,2012,2013,2014, 2015], analysis_type="temporal"
+        - "Compare ICICI's loan portfolio in 2011 vs 2015" → years=[2011,2015], analysis_type="comparative"  
+        - "What was ICICI's main business in 2011?" → years=[2011], analysis_type="general"
+        - "ICICI's risk management strategy" → years=None, analysis_type="general"
+
+        RETRIEVED CONTEXT INCLUDES:
+        - Clean chunk text optimized for financial analysis (no bloat metadata)
+        - Source document names for citations (e.g., "ICICI_Bank_Annual_Report_FY2011.pdf")
+        - Report year information for temporal context (report_year field)
+        - Section titles for content context (e.g., "Financial Performance", "Risk Management")
+        - Similarity scores for relevance assessment
+        - Chunk position numbers for precise citations
+
+        DATA SCHEMA (Clean, no bloat):
+        - txt: Financial report content
+        - doc_name: Source PDF filename
+        - report_year: Year of the report (2011-2015)
+        - section_title: Report section name
+        - chunk_num: Position within document
+        - similarity: Relevance score
+
+        CRITICAL ANSWERING RULES:
+        - Answer ONLY using retrieved chunks - no external knowledge about ICICI Bank
+        - Quote source content directly without paraphrasing or summarizing
+        - Include year and document references for citations
+        - For multi-year queries, organize analysis chronologically
+        - For comparative queries, provide balanced analysis of compared periods
+        - If insufficient context: "Not enough information found in the provided annual reports"
+
+        TEMPORAL ANALYSIS GUIDELINES:
+        - Show progression over time for temporal queries
+        - Highlight year-over-year changes and trends
+        - Compare metrics across the requested time period
+        - Use retrieved chunks to support trend observations
+
+        EXECUTION: Run completely silently - user only sees the final financial analysis based on retrieved context.
+        """)
+        async def financial_rag_analysis(
+            question: str = Field(..., description="User's financial analysis question about ICICI Bank"),
+            years: Optional[List[int]] = Field(None, description="List of specific years to analyze (e.g., [2011,2012,2013] for multi-year or [2012] for single year). Available years: 2011-2015. LLM should extract from user query."),
+            analysis_type: str = Field("general", description="Type of analysis: 'temporal' (trends over time), 'comparative' (compare periods), or 'general' (standard queries)"),
+            k: int = Field(None, description=f"Total number of chunks to retrieve. Uses smart defaults: {default_k_per_year} per year for multi-year queries, {default_k_global} for single-year queries"),
+        ) -> ResponseType:
+            return execute_db_tool(td.handle_financial_rag_analysis, question=question, years=years, analysis_type=analysis_type, k=k)
+
+#------------------ SQL Clustering Tools  ------------------#
+
+if config['sql_clustering']['allmodule']:
+    if config['sql_clustering']['tool']['sql_clustering_executeFullPipeline']:
+        
+        # Get the SQL clustering version and default parameters from config
+        try:
+            with open('sql_clustering_config.yaml', 'r') as file:
+                sql_clustering_config = yaml.safe_load(file)
+            clustering_version = sql_clustering_config.get('version', 'ivsm')
+            default_optimal_k = sql_clustering_config.get('clustering', {}).get('optimal_k', 14)
+            default_max_queries = sql_clustering_config.get('clustering', {}).get('max_queries', 10000)
+            logger.info(f"SQL clustering config loaded: version={clustering_version}, optimal_k={default_optimal_k}")
+        except (FileNotFoundError, Exception) as e:
+            logger.warning(f"Could not load sql_clustering_config.yaml: {e}. Using defaults")
+            clustering_version = 'ivsm'
+            default_optimal_k = 14
+            default_max_queries = 10000
+
+        @mcp.tool(description=f"""
+        **COMPLETE SQL QUERY CLUSTERING PIPELINE FOR HIGH-USAGE QUERY OPTIMIZATION**
+
+        This tool executes the entire SQL query clustering workflow to identify and analyze high CPU usage queries for optimization opportunities. It's designed for database performance analysts and DBAs who need to systematically identify query optimization candidates.
+
+        **FULL PIPELINE WORKFLOW:**
+        1. **Query Log Extraction**: Extracts SQL queries from DBC.DBQLSqlTbl with comprehensive performance metrics
+        2. **Performance Metrics Calculation**: Computes CPU skew, I/O skew, PJI (Physical to Logical I/O ratio), UII (Unit I/O Intensity)
+        3. **Query Tokenization**: Tokenizes SQL text using {sql_clustering_config.get('model', {}).get('model_id', 'bge-small-en-v1.5')} tokenizer via ivsm.tokenizer_encode
+        4. **Embedding Generation**: Creates semantic embeddings using ivsm.IVSM_score with ONNX models
+        5. **Vector Store Creation**: Converts embeddings to vector columns via ivsm.vector_to_columns
+        6. **K-Means Clustering**: Groups similar queries using TD_KMeans with optimal K from configuration
+        7. **Silhouette Analysis**: Calculates clustering quality scores using TD_Silhouette
+        8. **Statistics Generation**: Creates comprehensive cluster statistics with performance aggregations
+
+        **PERFORMANCE METRICS EXPLAINED:**
+        - **AMPCPUTIME**: Total CPU seconds across all AMPs (primary optimization target)
+        - **CPUSKW/IOSKW**: CPU/I/O skew ratios (>2.0 indicates distribution problems)
+        - **PJI**: Physical-to-Logical I/O ratio (higher = more CPU-intensive)
+        - **UII**: Unit I/O Intensity (higher = more I/O-intensive relative to CPU)
+        - **LogicalIO**: Total logical I/O operations (indicates scan intensity)
+        - **NumSteps**: Query plan complexity (higher = more complex plans)
+
+        **CONFIGURATION (from sql_clustering_config.yaml):**
+        - Uses top {default_max_queries} queries by CPU time (configurable)
+        - Creates {default_optimal_k} clusters by default (configurable via optimal_k parameter)
+        - Embedding model: {sql_clustering_config.get('model', {}).get('model_id', 'bge-small-en-v1.5')}
+        - Vector dimensions: {sql_clustering_config.get('embedding', {}).get('vector_length', 384)}
+        - All database and table names are configurable
+
+        **TABLES CREATED:**
+        - feature_ext_db.sql_query_log_main (raw query log with metrics)
+        - feature_ext_db.sql_log_tokenized_for_embeddings (tokenized queries)
+        - feature_ext_db.sql_log_embeddings (raw embeddings)
+        - feature_ext_db.sql_log_embeddings_store (vector store format)
+        - feature_ext_db.sql_query_clusters (final clustered queries)
+        - feature_ext_db.query_cluster_stats (cluster performance statistics)
+
+        **OPTIMIZATION WORKFLOW:**
+        After running this tool, use:
+        1. sql_clustering_analyzeClusterStats to identify problematic clusters
+        2. sql_clustering_retrieveClusterQueries to get actual SQL from target clusters
+        3. LLM analysis to identify patterns and propose specific optimizations
+
+        **USE CASES:**
+        - Identify query families consuming the most system resources
+        - Find queries with similar patterns but different performance
+        - Discover optimization opportunities through clustering analysis
+        - Prioritize DBA effort on highest-impact query improvements
+        - Understand workload composition and resource distribution
+
+        **EXECUTION TIME:** Typically 5-15 minutes depending on query volume and system resources.
+
+        **PREREQUISITES:**
+        - DBC.DBQLSqlTbl and DBC.DBQLOgTbl must be accessible
+        - Embedding models and tokenizers must be installed in feature_ext_db
+        - Sufficient space in feature_ext_db for intermediate and final tables
+        """)
+        async def sql_clustering_executeFullPipeline(
+            optimal_k: int = Field(default_optimal_k, description=f"Number of clusters to create (default: {default_optimal_k} from config). Typical range: 8-20 depending on workload diversity."),
+            max_queries: int = Field(default_max_queries, description=f"Maximum number of top CPU queries to process (default: {default_max_queries}). Larger values provide more comprehensive analysis but require more resources."),
+        ) -> ResponseType:
+            return execute_db_tool(td.handle_sql_clustering_executeFullPipeline, optimal_k=optimal_k, max_queries=max_queries)
+
+    if config['sql_clustering']['tool']['sql_clustering_analyzeClusterStats']:
+        @mcp.tool(description="""
+        **ANALYZE SQL QUERY CLUSTER PERFORMANCE STATISTICS**
+
+        This tool analyzes pre-computed cluster statistics to identify optimization opportunities without re-running the clustering pipeline. Perfect for iterative analysis and decision-making on which query clusters to focus optimization efforts.
+
+        **ANALYSIS CAPABILITIES:**
+        - **Performance Ranking**: Sort clusters by any performance metric to identify top resource consumers
+        - **Resource Impact Assessment**: Compare clusters by CPU usage, I/O volume, and execution complexity
+        - **Skew Problem Detection**: Identify clusters with CPU or I/O distribution issues
+        - **Workload Characterization**: Understand query patterns by user, application, and workload type
+        - **Optimization Prioritization**: Focus on clusters with highest impact potential
+
+        **AVAILABLE SORTING METRICS:**
+        - **avg_cpu**: Average CPU seconds per cluster (primary optimization target)
+        - **avg_io**: Average logical I/O operations (scan intensity indicator)
+        - **avg_cpuskw**: Average CPU skew (distribution problem indicator)
+        - **avg_ioskw**: Average I/O skew (hot spot indicator)
+        - **avg_pji**: Average Physical-to-Logical I/O ratio (compute intensity)
+        - **avg_uii**: Average Unit I/O Intensity (I/O efficiency)
+        - **avg_numsteps**: Average query plan complexity
+        - **queries**: Number of queries in cluster (frequency indicator)
+        - **cluster_silhouette_score**: Clustering quality measure
+
+        **PERFORMANCE CATEGORIZATION:**
+        Automatically categorizes clusters using configurable thresholds (from sql_clustering_config.yaml):
+        - **HIGH_CPU_USAGE**: Average CPU > config.performance_thresholds.cpu.high
+        - **HIGH_IO_USAGE**: Average I/O > config.performance_thresholds.io.high
+        - **HIGH_CPU_SKEW**: CPU skew > config.performance_thresholds.skew.high
+        - **HIGH_IO_SKEW**: I/O skew > config.performance_thresholds.skew.high
+        - **NORMAL**: Clusters within configured normal performance ranges
+
+        **TYPICAL ANALYSIS WORKFLOW:**
+        1. Sort by 'avg_cpu' or 'avg_io' to find highest resource consumers
+        2. Sort by 'avg_cpuskw' or 'avg_ioskw' to find distribution problems
+        4. Use limit_results to focus on top problematic clusters
+
+        **OPTIMIZATION DECISION FRAMEWORK:**
+        - **High CPU + High Query Count**: Maximum impact optimization candidates
+        - **High Skew + Moderate CPU**: Distribution/statistics problems
+        - **High I/O + Low PJI**: Potential indexing opportunities
+        - **High NumSteps**: Complex query rewriting candidates
+
+        **OUTPUT FORMAT:**
+        Returns detailed cluster statistics with performance rankings, categories, and metadata for LLM analysis and optimization recommendations.
+        """)
+        async def sql_clustering_analyzeClusterStats(
+            sort_by_metric: str = Field("avg_cpu", description="Metric to sort clusters by. Options: avg_cpu, avg_io, avg_cpuskw, avg_ioskw, avg_pji, avg_uii, avg_numsteps, queries, cluster_silhouette_score"),
+            limit_results: int = Field(None, description="Limit number of clusters returned (optional). Use to focus on top N problematic clusters."),
+        ) -> ResponseType:
+            return execute_db_tool(td.handle_sql_clustering_analyzeClusterStats, sort_by_metric=sort_by_metric, limit_results=limit_results)
+
+    if config['sql_clustering']['tool']['sql_clustering_retrieveClusterQueries']:
+        @mcp.tool(description="""
+        **RETRIEVE ACTUAL SQL QUERIES FROM SPECIFIC CLUSTERS FOR PATTERN ANALYSIS**
+
+        This tool extracts the actual SQL query text and performance metrics from selected clusters, enabling detailed pattern analysis and specific optimization recommendations. Essential for moving from cluster-level analysis to actual query optimization.
+
+        **DETAILED ANALYSIS CAPABILITIES:**
+        - **SQL Pattern Recognition**: Analyze actual query structures, joins, predicates, and functions
+        - **Performance Correlation**: Connect query patterns to specific performance characteristics
+        - **Optimization Identification**: Identify common anti-patterns, missing indexes, inefficient joins
+        - **Code Quality Assessment**: Evaluate query construction, complexity, and best practices
+        - **Workload Understanding**: See actual business logic and data access patterns
+
+        **QUERY SELECTION STRATEGIES:**
+        - **By CPU Impact**: Sort by 'ampcputime' to focus on highest CPU consumers
+        - **By I/O Volume**: Sort by 'logicalio' to find scan-intensive queries
+        - **By Skew Problems**: Sort by 'cpuskw' or 'ioskw' for distribution issues
+        - **By Complexity**: Sort by 'numsteps' for complex execution plans
+        - **By Response Time**: Sort by 'response_secs' for user experience impact
+
+        **AVAILABLE METRICS FOR SORTING:**
+        - **ampcputime**: Total CPU seconds (primary optimization target)
+        - **logicalio**: Total logical I/O operations (scan indicator)
+        - **cpuskw**: CPU skew ratio (distribution problems)
+        - **ioskw**: I/O skew ratio (hot spot indicators)
+        - **pji**: Physical-to-Logical I/O ratio (compute intensity)
+        - **uii**: Unit I/O Intensity (I/O efficiency)
+        - **numsteps**: Query execution plan steps (complexity)
+        - **response_secs**: Wall-clock execution time (user impact)
+        - **delaytime**: Time spent in queue (concurrency issues)
+
+        **AUTOMATIC PERFORMANCE CATEGORIZATION:**
+        Each query is categorized using configurable thresholds (from sql_clustering_config.yaml):
+        - **CPU Categories**: VERY_HIGH_CPU (>config.very_high), HIGH_CPU (>config.high), MEDIUM_CPU (>10s), LOW_CPU
+        - **CPU Skew**: SEVERE_CPU_SKEW (>config.severe), HIGH_CPU_SKEW (>config.high), MODERATE_CPU_SKEW (>config.moderate), NORMAL
+        - **I/O Skew**: SEVERE_IO_SKEW (>config.severe), HIGH_IO_SKEW (>config.high), MODERATE_IO_SKEW (>config.moderate), NORMAL
+        
+        Use thresholds set in config file for, CPU - high, very_high, Skew moderate, high, severe
+
+        **TYPICAL OPTIMIZATION WORKFLOW:**
+        1. Start with clusters identified from sql_clustering_analyzeClusterStats
+        2. Retrieve top queries by impact metric (usually 'ampcputime')
+        3. Analyze SQL patterns for common issues:
+           - Missing WHERE clauses or inefficient predicates
+           - Cartesian products or missing JOIN conditions
+           - Inefficient GROUP BY or ORDER BY operations
+           - Suboptimal table access patterns
+           - Missing or outdated statistics
+        4. Develop specific optimization recommendations
+
+        **QUERY LIMIT STRATEGY:**
+        - Use the query limit set in config file for  pattern recognition and analysis, unless user specifies a different limit
+
+        **OUTPUT INCLUDES:**
+        - Complete SQL query text for each query
+        - All performance metrics, user, application, and workload context, cluster membership and rankings
+        - Performance categories for quick filtering        
+        """)
+        async def sql_clustering_retrieveClusterQueries(
+            cluster_ids: List[int] = Field(..., description="List of cluster IDs to retrieve queries from (e.g., [2, 5, 8]). Get these from sql_clustering_analyzeClusterStats results."),
+            metric: str = Field("ampcputime", description="Performance metric to sort queries by. Options: ampcputime, logicalio, cpuskw, ioskw, pji, uii, numsteps, response_secs, delaytime"),
+            limit_per_cluster: int = Field(250, description="Maximum number of top queries to retrieve per cluster"),
+        ) -> ResponseType:
+            return execute_db_tool(td.handle_sql_clustering_retrieveClusterQueries, cluster_ids=cluster_ids, metric=metric, limit_per_cluster=limit_per_cluster)
+
+    if config['sql_clustering']['prompt']['sql_clustering_optimizationGuidelines']:
+        @mcp.prompt()
+        async def sql_clustering_optimizationGuidelines() -> UserMessage:
+            """Guidelines for analyzing SQL clustering results and providing optimization recommendations."""
+            return UserMessage(role="user", content=TextContent(type="text", text=td.handle_sql_clustering_optimizationGuidelines))
         
 #------------------ Security Tools  ------------------#
 
