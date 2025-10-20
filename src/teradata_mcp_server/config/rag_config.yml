@@ -1,7 +1,7 @@
 # RAG Configuration File
 
 # RAG Version Selection
-version: 'ivsm'  # Options: 'byom' (ONNXEmbeddings) or 'ivsm' (IVSM functions)
+version: 'byom'  # Options: 'byom' (ONNXEmbeddings) or 'ivsm' (IVSM functions)
 
 # Database Configuration
 databases:
@@ -13,7 +13,8 @@ databases:
 tables:
   query_table: "user_query"
   query_embedding_store: "user_query_embeddings"
-  vector_table: "icici_fr_embeddings_store"
+  # vector_table: "icici_fr_embeddings_store"
+  vector_table: "financial_reports_wf_embeddings_store"
   model_table: "embeddings_models"
   tokenizer_table: "embeddings_tokenizers"
 
@@ -24,7 +25,7 @@ model:
 # RAG Retrieval Configuration
 retrieval:
   default_k: 10  # Default number of chunks to retrieve
-  max_k: 50      # Maximum allowed chunks
+  max_k: 25      # Maximum allowed chunks
 
 # Vector Store Schema Configuration
 vector_store_schema:

@@ -1,0 +1,57 @@
+# Complaint Interaction History Configuration File
+
+# Database Configuration
+databases:
+  interaction_db: "demo_db"
+  complaint_db: "demo_db"
+
+# Table Configuration  
+tables:
+  interactions_table: "wf_interactions"
+  complaints_table: "wf_complaints"
+
+# Retrieval Configuration
+retrieval:
+  default_limit: 50     # Default max interactions per complaint
+  max_limit: 200        # Maximum allowed interactions per complaint
+
+# Interaction Fields Configuration
+interaction_fields:
+  # Core fields always included in results
+  required_fields:
+    - "interaction_id"
+    - "complaint_id" 
+    - "customer_id"
+    - "interaction_ts"
+    - "channel"
+    - "agent_id"
+    - "summary_text"
+    - "disposition"
+    - "sentiment_score"
+    
+  # Detailed fields included when include_details=True
+  detail_fields:
+    - "full_transcript_text"
+    - "agent_private_notes"
+    - "customer_visible_notes"
+    - "duration_seconds"
+    - "follow_up_required"
+    - "follow_up_due_ts"
+    - "priority"
+    - "satisfaction_predicted"
+    - "resolution_confidence"
+    - "call_quality_score"
+    - "key_topics_extracted"
+    - "next_best_action"
+    - "customer_effort_predicted"
+
+# Sorting Configuration
+sorting:
+  default_order: "interaction_ts ASC"  # Chronological order by default
+  available_orders:
+    - "interaction_ts ASC"           # Chronological (oldest first)
+    - "interaction_ts DESC"          # Reverse chronological (newest first)
+    - "sentiment_score DESC"         # Most positive sentiment first
+    - "priority DESC"                # Highest priority first
+    - "satisfaction_predicted ASC"   # Lowest satisfaction first (problematic interactions)
+    - "duration_seconds DESC"        # Longest interactions first

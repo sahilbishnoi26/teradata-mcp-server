@@ -1,0 +1,61 @@
+# Complaint Similarity Search Configuration File
+
+# Database Configuration
+databases:
+  query_db: "demo_db"
+  model_db: "demo_db"
+  complaint_db: "demo_db"
+
+# Table Configuration
+tables:
+  query_table: "complaint_query"
+  query_embedding_store: "complaint_query_embeddings"
+  complaints_table: "wf_complaints_master"  # Master table with integer IDs
+  model_table: "embeddings_models"
+  tokenizer_table: "embeddings_tokenizers"
+
+# Model Configuration
+model:
+  model_id: "bge-small-en-v1.5"
+
+# Similarity Search Configuration
+retrieval:
+  default_k: 5      # Default number of similar complaints to retrieve
+  max_k: 20         # Maximum allowed similar complaints
+
+# Complaint Fields Configuration
+complaint_fields:
+  # Required fields (always present in results)
+  required_fields:
+    - "complaint_id"
+    - "description_text"
+  
+  # Metadata fields to include in similarity search results
+  # These should match the columns available in your wf_complaints_master table
+  # Note: complaint_id and description_text are handled as required fields in the query builder
+  metadata_fields:
+    - "customer_id"
+    - "issue_cat_id" 
+    - "opened_ts"
+    - "closed_ts"
+    - "status"
+    - "severity"
+    - "priority"
+    - "agent_notes"
+    - "sentiment_open"
+    - "sentiment_close"
+    - "resolution_code"
+    - "refund_amount"
+    - "escalation_risk_score"
+    - "urgency_score"
+    - "emotion_primary"
+    - "origin_transaction_id"
+    - "created_date"
+    - "last_updated"
+
+# Embedding Configuration (matches your existing setup)
+embedding:
+  vector_length: 384
+  vector_column_prefix: "emb_"
+  distance_measure: "cosine"
+  feature_columns: "[emb_0:emb_383]"

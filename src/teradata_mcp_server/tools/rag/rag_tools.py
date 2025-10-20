@@ -41,7 +41,7 @@ def get_default_rag_config():
         'tables': {
             'query_table': 'user_query',
             'query_embedding_store': 'user_query_embeddings',
-            'vector_table': 'icici_fr_embeddings_store',
+            'vector_table': 'financial_reports_wf_embeddings_store',
             'model_table': 'embeddings_models',
             'tokenizer_table': 'embeddings_tokenizers'
         },
@@ -49,8 +49,8 @@ def get_default_rag_config():
             'model_id': 'bge-small-en-v1.5'
         },
         'retrieval': {
-            'default_k': 10,
-            'max_k': 50
+            'default_k': 5,
+            'max_k': 10
         },
         'vector_store_schema': {
             'required_fields': ['txt'],
@@ -70,7 +70,7 @@ RAG_CONFIG = load_rag_config()
 def build_search_query(vector_db, dst_table, chunk_embed_table, k, config):
     """Build dynamic search query based on available metadata fields in vector store"""
     # Get metadata fields from config
-    metadata_fields = config['vector_store_schema']['metadata_fields_in_vector_store']
+    metadata_fields = config['vector_store_schema']['metadata_fields_in_vector_store'] or []
     feature_columns = config['embedding']['feature_columns']
 
     # Build SELECT clause dynamically - txt is always required
@@ -228,7 +228,7 @@ def _execute_rag_workflow_byom(conn: TeradataConnection, question: str, k: int |
         k = config['retrieval']['default_k']
 
     # Optional: Enforce max limit
-    max_k = config['retrieval'].get('max_k', 50)
+    max_k = config['retrieval'].get('max_k', 10)
     if k > max_k:
         logger.warning(f"Requested k={k} exceeds max_k={max_k}, using max_k")
         k = max_k
@@ -361,7 +361,7 @@ def _execute_rag_workflow_ivsm(conn: TeradataConnection, question: str, k: int |
         k = config['retrieval']['default_k']
 
     # Optional: Enforce max limit
-    max_k = config['retrieval'].get('max_k', 50)
+    max_k = config['retrieval'].get('max_k', 10)
     if k > max_k:
         logger.warning(f"Requested k={k} exceeds max_k={max_k}, using max_k")
         k = max_k

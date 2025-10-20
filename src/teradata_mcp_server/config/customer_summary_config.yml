@@ -1,0 +1,188 @@
+# Customer Summary Card Configuration File
+
+# Database Configuration
+databases:
+  customer_db: "demo_db"
+  account_db: "demo_db" 
+  transaction_db: "demo_db"
+  complaint_db: "demo_db"
+  interaction_db: "demo_db"
+
+# Table Configuration
+tables:
+  customers_table: "wf_customer_profiles"
+  accounts_table: "wf_accounts"
+  transactions_table: "wf_transactions"
+  complaints_table: "wf_complaints"
+  interactions_table: "wf_interactions"
+
+# Analysis Configuration
+analysis:
+  # Lookback periods for different data types
+  recent_transaction_days: 30      # Recent transaction analysis period
+  complaint_lookback_days: 180     # Complaint history lookback
+  interaction_lookback_days: 90    # Interaction history lookback
+  
+  # Customer value and risk thresholds
+  high_value_threshold: 150000     # LTV threshold for high-value classification
+  churn_risk_high_threshold: 0.4   # Churn risk score threshold for high risk
+  complaint_propensity_high_threshold: 0.5  # Complaint propensity threshold
+  
+  # Financial stress indicators
+  financial_stress_indicators:
+    - "overdraft"
+    - "nsf" 
+    - "low_balance"
+    - "declined_transactions"
+    - "payment_delays"
+  
+  # Product recommendation thresholds
+  product_recommendations:
+    checking_balance_threshold: 10000    # Excess cash in checking (investment opportunity)
+    savings_balance_threshold: 50000     # High-yield savings eligibility
+    credit_utilization_low: 0.1          # Low utilization (potential for higher limits)
+    credit_utilization_high: 0.8         # High utilization (risk indicator)
+    income_investment_threshold: 100000  # Income threshold for investment services
+    income_premium_card_threshold: 75000 # Income threshold for premium credit products
+
+# Risk Scoring Configuration
+risk_scoring:
+  # Factor weights for comprehensive churn risk calculation
+  churn_factors:
+    complaint_weight: 0.3              # Weight for complaint-based risk
+    interaction_sentiment_weight: 0.2   # Weight for interaction sentiment risk
+    financial_stress_weight: 0.2       # Weight for financial stress indicators
+    tenure_weight: 0.1                 # Weight for tenure protection factor
+    engagement_weight: 0.2             # Weight for engagement/propensity risk
+  
+  # Risk category thresholds
+  risk_thresholds:
+    critical: 0.7     # Critical risk threshold (immediate attention needed)
+    high: 0.4         # High risk threshold (proactive retention needed)
+    medium: 0.2       # Medium risk threshold (monitoring recommended)
+    low: 0.0          # Low risk (standard service)
+
+# Service Level Configuration
+service_levels:
+  # VIP and high-value customer treatment
+  vip_service:
+    escalation_threshold: 1        # Escalate after 1 interaction
+    response_time_target: "< 4 hours"
+    approved_goodwill_limit: 500   # Dollar amount agents can approve
+    
+  # High-risk customer retention focus  
+  retention_service:
+    escalation_threshold: 2
+    response_time_target: "< 8 hours" 
+    approved_goodwill_limit: 200
+    
+  # Standard service levels
+  standard_service:
+    escalation_threshold: 3
+    response_time_target: "< 24 hours"
+    approved_goodwill_limit: 50
+
+# Transaction Analysis Configuration
+transaction_analysis:
+  # Spending pattern categorization
+  merchant_categories:
+    groceries: ["GROCERY", "TARGET", "WALMART", "COSTCO", "SAFEWAY"]
+    gas: ["GAS", "SHELL", "CHEVRON", "EXXON", "BP", "MOBIL"]
+    dining: ["RESTAURANT", "COFFEE", "STARBUCKS", "MCDONALD", "SUBWAY"]
+    subscriptions: ["NETFLIX", "SPOTIFY", "AMAZON PRIME", "SUBSCRIPTION"]
+    utilities: ["ELECTRIC", "GAS COMPANY", "WATER", "INTERNET", "PHONE"]
+    healthcare: ["MEDICAL", "PHARMACY", "HOSPITAL", "DENTAL", "DOCTOR"]
+  
+  # Unusual activity detection
+  anomaly_detection:
+    amount_multiplier_threshold: 3.0  # Flag transactions > 3x average
+    location_anomaly_distance: 100    # Miles from home for location alerts
+    velocity_threshold: 5             # Number of transactions in short timeframe
+    
+  # Channel preferences tracking
+  channel_mapping:
+    digital: ["ONLINE", "MOBILE", "ECOMM"]
+    physical: ["POS", "ATM", "BRANCH"] 
+    automated: ["ACH", "WIRE", "AUTOPAY"]
+
+# Product Recommendation Engine Configuration
+product_recommendations:
+  # Eligibility criteria for different products
+  eligibility_rules:
+    high_yield_savings:
+      min_savings_balance: 25000
+      required_segments: ["High Net Worth", "Emerging Affluent"]
+      min_tenure_months: 12
+      
+    investment_services:
+      min_annual_income: 75000
+      min_checking_balance: 15000
+      required_segments: ["High Net Worth", "Emerging Affluent"]
+      min_age: 25
+      
+    premium_credit_card:
+      min_annual_income: 60000
+      max_existing_utilization: 0.6
+      min_credit_score: 700  # If available
+      
+    overdraft_protection:
+      financial_stress_required: true
+      recent_overdrafts_threshold: 1
+      
+    mobile_banking:
+      max_digital_adoption: 0.4
+      min_age: 18
+      max_age: 65
+      
+  # Revenue potential estimates
+  revenue_estimates:
+    high_yield_savings_rate_difference: 0.015  # 1.5% rate difference
+    investment_services_annual_fee: 1200       # Annual advisory fee
+    premium_card_annual_fee: 95               # Annual card fee
+    mobile_banking_cost_savings: 240         # Annual cost savings from digital adoption
+
+# Customer Communication Preferences
+communication_preferences:
+  # Channel preferences by customer attributes
+  channel_recommendations:
+    high_net_worth: ["Phone", "Branch", "Secure Message"]
+    emerging_affluent: ["Phone", "Email", "Chat"] 
+    mass_affluent: ["Chat", "Email", "SMS"]
+    
+  # Tone recommendations by risk level
+  tone_guidelines:
+    critical_risk: "Empathetic, solution-focused, retention-oriented"
+    high_risk: "Proactive, understanding, value-reinforcing"
+    medium_risk: "Professional, efficient, opportunity-seeking"
+    low_risk: "Friendly, educational, growth-oriented"
+    
+  # Escalation triggers
+  escalation_triggers:
+    immediate: ["Legal threat", "Regulatory complaint", "VIP dissatisfaction"]
+    priority: ["Churn threat", "High-value complaint", "Repeated issues"]
+    standard: ["Complex resolution", "Policy exception needed", "Technical issue"]
+
+# Data Quality and Validation
+data_validation:
+  # Required fields for complete analysis
+  required_customer_fields:
+    - "customer_id"
+    - "full_name" 
+    - "segment"
+    - "tenure_years"
+    - "ltv_score"
+    - "churn_risk_score"
+    
+  # Data freshness requirements (days)
+  freshness_requirements:
+    customer_profile: 30      # Customer profile data should be < 30 days old
+    account_balances: 1       # Account balances should be < 1 day old  
+    transaction_data: 7       # Transaction analysis should include last 7 days
+    interaction_data: 30      # Interaction sentiment should be < 30 days old
+    
+  # Data quality flags
+  quality_flags:
+    incomplete_profile: "Missing critical customer information"
+    stale_data: "Data older than freshness requirements"
+    missing_accounts: "No accounts found for customer"
+    no_recent_activity: "No recent transactions or interactions"

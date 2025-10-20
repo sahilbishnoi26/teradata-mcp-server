@@ -25,12 +25,19 @@ dba:
 dataScientist:
   tool:
     - ^base_*
-    - ^rag_*
+    # - ^rag_*
     - ^sql_*
-    - ^fs_*
-    - ^qlty_*
-    - ^sec_userDbPermissions
-    - ^dba_userSqlList
+    - ^custom_* 
+    # - ^Customer_* 
+    # - ^Financial_*
+    - ^cx_*
+    - ^complaint_*
+    - ^customer_*
+    - ^banking_*
+    # - ^fs_*
+    # - ^qlty_*
+    # - ^sec_userDbPermissions
+    # - ^dba_userSqlList
   prompt:
     - ^rag_*
     - ^sql_*
